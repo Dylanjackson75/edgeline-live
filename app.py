@@ -1,26 +1,39 @@
-import time, requests, pandas as pd, streamlit as st
+import time, os, requests, pandas as pd, streamlit as st
 
 st.set_page_config(page_title="EdgeLine — Live Odds", layout="wide")
-st.title("EdgeLine — Live Odds (No Secrets mode)")
+st.title("EdgeLine — Live Odds +EV Workspace")
 
-# ---- Inline setup (no Secrets required) ----
-with # --- Load Odds API key from Secrets first, then env, then sidebar input ---
-import os
+# ---- Optional backend health (won't block odds) ----
+API_BASE = st.secrets.get("API_BASE","")
+API_KEY  = st.secrets.get("API_KEY","")
+status = st.empty()
+if API_BASE:
+    try:
+        r = requests.get(f"{API_BASE}/health",
+                         headers={"X-API-Key": API_KEY} if API_KEY else {},
+                         timeout=6)
+        if r.ok and r.json().get("ok"):
+            status.success(f"✅ Connected to API: {API_BASE}")
+        else:
+            status.warning(f"API reachable but not healthy: {API_BASE}")
+    except Exception as e:
+        status.info(f"(Optional) Backend not reachable: {e}")
+else:
+    status.info("Backend optional. Live odds will still work.")
 
+# ---- Odds API key resolution: Secrets ➜ Env ➜ Sidebar fallback ----
 ODDS_KEY = st.secrets.get("THE_ODDS_API_KEY", "") or os.getenv("THE_ODDS_API_KEY", "")
-
 key_source = None
 if ODDS_KEY:
-    key_source = "Secrets" if st.secrets.get("THE_ODDS_API_KEY") else "Env"
+    key_source = "Secrets" if "THE_ODDS_API_KEY" in st.secrets else "Env"
 else:
-    # As a fallback, allow manual entry once; cache in session until refresh.
     with st.sidebar:
-        st.subheader("Setup")
+        st.subheader("Setup (temporary)")
         _manual = st.text_input(
             "THE_ODDS_API_KEY",
             value="",
             type="password",
-            help="Paste your The Odds API key here (temporary fallback).",
+            help="Paste your The Odds API key (only needed if Secrets/env not set).",
             key="odds_key_manual"
         )
         if _manual:
@@ -28,13 +41,19 @@ else:
     ODDS_KEY = st.session_state.get("odds_key_cached", "")
     key_source = "Manual" if ODDS_KEY else None
 
-# Optional status line (small, helpful):
 if key_source:
     st.caption(f"Using The Odds API key from **{key_source}**.")
 else:
     st.warning("No Odds API key detected. Add it in Secrets or paste it in the sidebar.")
 
-# ----------------- Demo fallback -----------
+# ----------------- Helper -----------------
+def fetch_odds(markets_csv: str, regions: str, fmt: str, key: str):
+    url = "https://api.the-odds-api.com/v4/sports/americanfootball_ncaaf/odds"
+    params = {"regions": regions, "markets": markets_csv, "oddsFormat": fmt, "apiKey": key}
+    r = requests.get(url, params=params, timeout=15)
+    r.raise_for_status()
+    return r.json()
+
 DEMO_ROWS = pd.DataFrame([
     {"game_id":"demo1","time":"2025-10-18T20:00:00Z","book_key":"betonlineag","book_name":"BetOnline",
      "market":"spreads","team":"ALABAMA","price":-110,"point":-6.5,"home":"ALABAMA","away":"TENNESSEE"},
@@ -43,6 +62,8 @@ DEMO_ROWS = pd.DataFrame([
     {"game_id":"demo2","time":"2025-10-18T23:30:00Z","book_key":"draftkings","book_name":"DraftKings",
      "market":"h2h","team":"GEORGIA","price":-180,"point":None,"home":"GEORGIA","away":"KENTUCKY"},
 ])
+
+tab1, tab2 = st.tabs(["Auto-fetch odds (NCAAF)", "Upload board (CSV)"])
 
 # ================= Tab 1 ===================
 with tab1:
@@ -93,7 +114,7 @@ with tab1:
             st.info("Showing demo data instead.")
             rows = DEMO_ROWS.to_dict("records")
     else:
-        st.info("No API key provided — showing demo data. Paste your key in the sidebar to fetch live odds.")
+        st.info("No API key provided — showing demo data. Add key in Secrets or the sidebar to fetch live odds.")
         rows = DEMO_ROWS.to_dict("records")
 
     df = pd.DataFrame(rows)
