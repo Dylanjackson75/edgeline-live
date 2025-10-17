@@ -117,6 +117,42 @@ with tab1:
         rows = DEMO_ROWS.to_dict("records")
 
     df = pd.DataFrame(rows)
+    # ---- Sportsbook filter (preset + multiselect) ----
+KNOWN_BOOKS = {
+    "betonlineag": "BetOnline",
+    "draftkings": "DraftKings",
+    "fanduel": "FanDuel",
+    "caesars": "Caesars",
+    "betmgm": "BetMGM",
+    "pointsbetus": "PointsBet",
+    "betrivers": "BetRivers",
+    "pinnacle": "Pinnacle",
+    "williamhill_us": "William Hill",
+}
+
+available_books = sorted(df.get("book_key", pd.Series([])).dropna().unique().tolist())
+pretty = lambda k: KNOWN_BOOKS.get(k, k)
+
+cB1, cB2 = st.columns([1,2])
+preset = cB1.selectbox(
+    "Books preset",
+    ["(All)", "BetOnline only", "DK only", "FD only", "DK + FD + BOL"],
+)
+preselect = []
+if preset == "BetOnline only": preselect = ["betonlineag"]
+elif preset == "DK only": preselect = ["draftkings"]
+elif preset == "FD only": preselect = ["fanduel"]
+elif preset == "DK + FD + BOL": preselect = ["draftkings","fanduel","betonlineag"]
+
+selected_books = cB2.multiselect(
+    "Or pick specific books",
+    options=available_books,
+    default=preselect if preselect else available_books,
+    format_func=pretty,
+)
+
+if selected_books:
+    df = df[df["book_key"].isin(selected_books)]
     st.write("### Board preview")
     st.dataframe(df, use_container_width=True)
     st.download_button("Download current board (CSV)",
