@@ -63,8 +63,7 @@ DEMO_ROWS = pd.DataFrame([
      "market":"h2h","team":"GEORGIA","price":-180,"point":None,"home":"GEORGIA","away":"KENTUCKY"},
 ])
 
-tab1, tab2 = st.tabs(["Auto-fetch odds (NCAAF)", "Upload board (CSV)"])
-
+tab1, tab2, tab3 = st.tabs(["Auto-fetch odds (NCAAF)", "Upload board (CSV)", "Bet tracker"])
 # ================= Tab 1 ===================
 with tab1:
     c1,c2,c3,c4 = st.columns([1,1,1,1])
