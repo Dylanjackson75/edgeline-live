@@ -134,3 +134,71 @@ with tab2:
             f.seek(0); df_up = pd.read_csv(f)
         st.success("File loaded")
         st.dataframe(df_up.head(200), use_container_width=True)
+
+# ================= Tab 3: Bet tracker ===================
+with tab3:
+    st.subheader("Your Bets")
+    # init storage
+    if "bets" not in st.session_state:
+        st.session_state["bets"] = []
+
+    c1,c2,c3,c4,c5 = st.columns([1.6,1,1,1,1])
+    with c1: game = st.text_input("Game (e.g., TENN @ ALA)")
+    with c2: market = st.selectbox("Market", ["FT Spread","FT Total","1H Spread","1H Total","ML"])
+    with c3: pick = st.text_input("Pick (e.g., ALA -6.5 / OVER / ALA ML)")
+    with c4: odds = st.number_input("Odds (American)", value=-110, step=1)
+    with c5: stake = st.number_input("Stake ($)", value=50.0, step=5.0)
+
+    if st.button("Add bet"):
+        if game and pick:
+            st.session_state["bets"].append({
+                "game": game, "market": market, "pick": pick,
+                "odds": int(odds), "stake": float(stake),
+                "result": "open", "payout": 0.0
+            })
+        else:
+            st.warning("Add at least a Game and Pick before adding.")
+
+    import pandas as _pd
+    if st.session_state["bets"]:
+        dfb = _pd.DataFrame(st.session_state["bets"])
+        st.dataframe(dfb, use_container_width=True)
+
+        st.markdown("### Grade a result")
+        i = st.number_input("Row #", min_value=0, max_value=len(dfb)-1, value=0)
+        res = st.selectbox("Result", ["open","win","loss","push"], index=0)
+        if st.button("Update result"):
+            bet = st.session_state["bets"][i]
+            bet["result"] = res
+            # compute payout (profit/loss excluding returned stake)
+            odd = bet["odds"]; stak = bet["stake"]
+            if res == "win":
+                dec = 1 + (100/abs(odd) if odd < 0 else odd/100)
+                bet["payout"] = round(stak*dec - stak, 2)
+            elif res == "loss":
+                bet["payout"] = -stak
+            elif res == "push":
+                bet["payout"] = 0.0
+
+        # summary
+        dfb = _pd.DataFrame(st.session_state["bets"])
+        closed = dfb[dfb["result"].isin(["win","loss","push"])]
+        wins = (closed["result"]=="win").sum()
+        losses = (closed["result"]=="loss").sum()
+        pushes = (closed["result"]=="push").sum()
+        profit = float(closed["payout"].sum()) if not closed.empty else 0.0
+        risked = float(closed.loc[closed["result"]!="push","stake"].sum()) if not closed.empty else 0.0
+        roi = (profit / risked * 100) if risked > 0 else 0.0
+
+        cA,cB,cC = st.columns(3)
+        cA.metric("Record", f"{wins}-{losses}-{pushes}")
+        cB.metric("Profit", f"${profit:,.2f}")
+        cC.metric("ROI", f"{roi:.2f}%")
+
+        st.download_button(
+            "Export bets (CSV)",
+            dfb.to_csv(index=False).encode("utf-8"),
+            "bets.csv", "text/csv"
+        )
+    else:
+        st.info("No bets yet. Add one above.")
