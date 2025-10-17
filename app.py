@@ -5,8 +5,12 @@ st.title("EdgeLine — Live Odds +EV Workspace")
 
 # ---- Secrets ----
 API_BASE = st.secrets.get("API_BASE","")                 # optional backend (Render)
-API_KEY  = st.secrets.get("API_KEY","")                  # optional backend key
-ODDS_KEY = st.secrets.get("11bafb6e4ac8b79dd679817ddf3ede5b","")         # The Odds API key
+API_KEY  = st.secrets.get("API_KEY","")                  # optional backend ODDS_KEY = st.secrets.get("THE_ODDS_API_KEY","")
+if not ODDS_KEY:
+    with st.sidebar:
+        st.subheader("Setup (temporary)")
+        ODDS_KEY = st.text_input("THE_ODDS_API_KEY", value="", type="password",
+                                 help="Paste your The Odds API key here if Secrets isn’t available yet.")  # The Odds API key
 
 # ---- Optional backend health check ----
 status = st.empty()
