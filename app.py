@@ -4,21 +4,35 @@ st.set_page_config(page_title="EdgeLine — Live Odds", layout="wide")
 st.title("EdgeLine — Live Odds (No Secrets mode)")
 
 # ---- Inline setup (no Secrets required) ----
-with st.sidebar:
-    st.subheader("Setup")
-    ODDS_KEY = st.text_input("THE_ODDS_API_KEY", value="", type="password",
-                             help="Paste your The Odds API key here (the-odds-api.com).")
-    st.caption("Tip: You can leave it blank to use demo data.")
+with # --- Load Odds API key from Secrets first, then env, then sidebar input ---
+import os
 
-tab1, tab2 = st.tabs(["Auto-fetch odds (NCAAF)", "Upload board (CSV)"])
+ODDS_KEY = st.secrets.get("THE_ODDS_API_KEY", "") or os.getenv("THE_ODDS_API_KEY", "")
 
-# ----------------- Helper -----------------
-def fetch_odds(markets_csv: str, regions: str, fmt: str, key: str):
-    url = "https://api.the-odds-api.com/v4/sports/americanfootball_ncaaf/odds"
-    params = {"regions": regions, "markets": markets_csv, "oddsFormat": fmt, "apiKey": key}
-    r = requests.get(url, params=params, timeout=15)
-    r.raise_for_status()
-    return r.json()
+key_source = None
+if ODDS_KEY:
+    key_source = "Secrets" if st.secrets.get("THE_ODDS_API_KEY") else "Env"
+else:
+    # As a fallback, allow manual entry once; cache in session until refresh.
+    with st.sidebar:
+        st.subheader("Setup")
+        _manual = st.text_input(
+            "THE_ODDS_API_KEY",
+            value="",
+            type="password",
+            help="Paste your The Odds API key here (temporary fallback).",
+            key="odds_key_manual"
+        )
+        if _manual:
+            st.session_state["odds_key_cached"] = _manual
+    ODDS_KEY = st.session_state.get("odds_key_cached", "")
+    key_source = "Manual" if ODDS_KEY else None
+
+# Optional status line (small, helpful):
+if key_source:
+    st.caption(f"Using The Odds API key from **{key_source}**.")
+else:
+    st.warning("No Odds API key detected. Add it in Secrets or paste it in the sidebar.")
 
 # ----------------- Demo fallback -----------
 DEMO_ROWS = pd.DataFrame([
