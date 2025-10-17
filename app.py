@@ -153,6 +153,15 @@ selected_books = cB2.multiselect(
 
 if selected_books:
     df = df[df["book_key"].isin(selected_books)]
+    # ---- Quick search by team or matchup ----
+q = st.text_input("Search (team or matchup)", value="")
+if q:
+    qlow = q.strip().lower()
+    df = df[
+        df["home"].fillna("").str.lower().str.contains(qlow)
+        | df["away"].fillna("").str.lower().str.contains(qlow)
+        | (df["home"].fillna("") + " @ " + df["away"].fillna("")).str.lower().str.contains(qlow)
+    ]
     st.write("### Board preview")
     st.dataframe(df, use_container_width=True)
     st.download_button("Download current board (CSV)",
