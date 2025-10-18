@@ -153,7 +153,11 @@ with st.sidebar:
     st.caption("API keys")
     st.success("The Odds API key loaded" if ODDS_KEY else "Add THE_ODDS_API_KEY in Secrets to fetch live odds.")
     if HAS_AI: st.success("OpenAI key loaded (AI write-ups/chat on)")
-
+# Model/EV controls (per-sport sensible defaults)
+spread_sigma = st.sidebar.slider("Spread Sigma (pts)", 6.0, 18.0, 13.0, 0.5)
+total_sigma  = st.sidebar.slider("Total Sigma (pts)", 6.0, 18.0, 11.0, 0.5)
+draw_rate    = st.sidebar.slider("NHL Draw Rate (reg)", 0.10, 0.30, 0.22, 0.01)
+kelly_scale  = st.sidebar.slider("Kelly Scale", 0.0, 1.0, 0.5, 0.05)
 # -------------------- Tabs -------------------- #
 tab_dashboard, tab_props, tab_writeups, tab_upload, tab_tracker, tab_chat = st.tabs(
     ["Top Value Bets","Props","Write-Ups","Upload Board","Bet Tracker","Chat"]
