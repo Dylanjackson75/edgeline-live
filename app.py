@@ -25,7 +25,25 @@ st.markdown(
     unsafe_allow_html=True,
 )
 st.caption("Live odds, value ranking, props, write-ups, bet tracking, and chat — all in one place.")
+SPORTS = {
+    "CFB":  {"odds_key": "americanfootball_ncaaf", "default_markets": ["spreads","totals","h2h"]},
+    "NCAAB":{"odds_key": "basketball_ncaab",        "default_markets": ["spreads","totals","h2h","spreads:1st_half","totals:1st_half","spreads:1st_quarter","totals:1st_quarter"]},
+    "NBA":  {"odds_key": "basketball_nba",          "default_markets": ["spreads","totals","h2h","spreads:1st_half","totals:1st_half","spreads:1st_quarter","totals:1st_quarter"]},
+    "NHL":  {"odds_key": "icehockey_nhl",           "default_markets": ["spreads","totals","h2h","h2h_3way"]},  # 3-way (regulation) too
+    "UFC":  {"odds_key": "mma_mixed_martial_arts",  "default_markets": ["h2h"]}  # can add method/round props later
+}
 
+# map “pretty” market tags -> The Odds API market keys
+MARKET_ALIASES = {
+    "FT Spread": "spreads",
+    "FT Total":  "totals",
+    "Moneyline": "h2h",
+    "1H Spread": "spreads:1st_half",
+    "1H Total":  "totals:1st_half",
+    "1Q Spread": "spreads:1st_quarter",
+    "1Q Total":  "totals:1st_quarter",
+    "3-Way ML":  "h2h_3way"
+}
 # -------------------- Helpers -------------------- #
 KNOWN_BOOKS = {
     "betonlineag": "BetOnline",
