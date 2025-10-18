@@ -182,7 +182,8 @@ if not df.empty:
     df["_flag"] = np.where(df.get("_best", False), "⭐ best", "")
     ]
     st.write("### Board preview")
-    st.dataframe(df, use_container_width=True)
+    st.write("### Board preview (filtered)")
+st.dataframe(df.drop(columns=["_rank"], errors="ignore"), use_container_width=True)
     st.download_button("Download current board (CSV)",
                        df.to_csv(index=False).encode("utf-8"),
                        "ncaaf_live_odds.csv", "text/csv")
