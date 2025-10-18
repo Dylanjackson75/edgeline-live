@@ -166,8 +166,8 @@ if q:
 import numpy as np
 
 for c in ("price","point"):
-    if c in df.columns:
-        df[c] = pd.to_numeric(df[c], errors="coerce")
+if c in df.columns:
+df[c] = pd.to_numeric(df[c], errors="coerce")
 
 def pick_best(group: pd.DataFrame) -> pd.DataFrame:
     g = group.copy()
