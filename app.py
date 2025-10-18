@@ -254,6 +254,108 @@ with tab1:
             st.session_state["last_tick"] = now
             st.experimental_rerun()
 
+# ---- Live movement monitoring & auto-adjust (drop-in) ----
+import time
+import pandas as pd
+import numpy as np
+import streamlit as st
+
+KEY_NUMBERS = {3, 7, 10, 14}
+
+def key_number_edge(old_point, new_point):
+    try:
+        old_abs, new_abs = abs(float(old_point)), abs(float(new_point))
+    except Exception:
+        return False
+    # Flag if we crossed any key number between old -> new
+    crossed = any(min(old_abs, new_abs) < k <= max(old_abs, new_abs) for k in KEY_NUMBERS)
+    return crossed
+
+def compute_deltas(prev_df: pd.DataFrame, curr_df: pd.DataFrame) -> pd.DataFrame:
+    if prev_df is None or prev_df.empty or curr_df is None or curr_df.empty:
+        curr_df["_move"] = ""
+        curr_df["_steam"] = False
+        curr_df["_crossed_key"] = False
+        return curr_df
+
+    keys = ["game_id", "book_key", "market", "team"]
+    prev = prev_df.copy()
+    curr = curr_df.copy()
+    for c in ("price","point"):
+        if c in prev.columns: prev[c] = pd.to_numeric(prev[c], errors="coerce")
+        if c in curr.columns: curr[c] = pd.to_numeric(curr[c], errors="coerce")
+
+    merged = curr.merge(
+        prev[keys + ["price","point"]].rename(columns={"price":"price_prev","point":"point_prev"}),
+        on=keys, how="left"
+    )
+    merged["d_price"] = merged["price"] - merged["price_prev"]
+    merged["d_point"] = merged["point"] - merged["point_prev"]
+    # Steam heuristics
+    merged["_steam"] = (
+        (merged["d_point"].abs() >= 1.0) |
+        (merged["d_price"].abs() >= 20)
+    ).fillna(False)
+
+    merged["_crossed_key"] = merged.apply(
+        lambda r: key_number_edge(r.get("point_prev"), r.get("point")), axis=1
+    )
+    # Pretty move badge
+    def fmt_move(r):
+        p = r.get("d_point")
+        c = r.get("d_price")
+        parts = []
+        if pd.notna(p) and p != 0: parts.append(f"Δpt {p:+g}")
+        if pd.notna(c) and c != 0: parts.append(f"Δ¢ {int(c):+d}")
+        return " / ".join(parts)
+    merged["_move"] = merged.apply(fmt_move, axis=1)
+    return merged
+
+# Keep last snapshot in session
+if "last_board" not in st.session_state:
+    st.session_state["last_board"] = pd.DataFrame()
+
+# After you build `df` with fresh odds (your existing code), add:
+curr = df.copy()
+curr = compute_deltas(st.session_state["last_board"], curr)
+
+# Re-rank: prioritize best price, then biggest favorable move, then time
+if not curr.empty:
+    # Favorable means price improved (more + for dogs, more - for favs) or spread moved to our side
+    # Here we just sort by magnitude of move and best-price flag
+    curr["_move_score"] = curr["d_point"].abs().fillna(0)*10 + curr["d_price"].abs().fillna(0)/10
+    curr = curr.sort_values(["_best","_crossed_key","_steam","_move_score"], ascending=[False, False, False, False])
+
+# UI badges
+st.write("### Live moves")
+st.caption("Badges: ⭐ Best price · 🔥 Steam move · 🎯 Crossed key number (3/7/10/14)")
+if not curr.empty:
+    view = curr.copy()
+    view["_badges"] = (
+        np.where(view.get("_best", False), "⭐", "")
+        + np.where(view.get("_steam", False), "🔥", "")
+        + np.where(view.get("_crossed_key", False), "🎯", "")
+    )
+    st.dataframe(
+        view[["time","home","away","book_name","market","team","point","price","_move","_badges"]],
+        use_container_width=True,
+        hide_index=True
+    )
+
+# Auto-adjust picks (toggle)
+auto_adjust = st.toggle("Auto-adjust picks on movement", value=True,
+                        help="Recompute and drop plays when edge/Kelly falls below thresholds after a move.")
+
+EDGE_MIN_KELLY = st.slider("Min Kelly to keep a play", 0.0, 1.0, 0.0025, 0.0005, help="0.25% default")
+if auto_adjust and not curr.empty:
+    # If you already compute kelly_* columns elsewhere, filter by them here.
+    kelly_cols = [c for c in curr.columns if c.startswith("kelly_")]
+    if kelly_cols:
+        curr = curr[curr[kelly_cols].max(axis=1) >= EDGE_MIN_KELLY]
+
+# Persist snapshot for next diff
+st.session_state["last_board"] = df.copy()
+
 # ========================= TAB 2 ========================= #
 with tab2:
     st.subheader("Upload board (CSV/TSV)")
