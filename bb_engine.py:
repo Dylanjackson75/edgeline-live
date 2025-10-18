@@ -42,3 +42,4 @@ def project_game(players_games, injuries, date, home, away, player_impacts):
     base_total = 225.0  # NBA baseline; learn per league
     fair_total = base_total + 0.4*(home_net + away_net)
     return fair_spread_home, fair_total
+
