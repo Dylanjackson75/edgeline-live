@@ -343,36 +343,32 @@ with tab_props:
 # =================================
 # TAB 3 — WRITE-UPS (manual + AI)
 # =================================
-with tab_writeups:
-    st.subheader("Game Write-Ups")
-    st.caption("Keep notes or click Generate to draft an AI write-up for the matchup.")
-    game_title = st.text_input("Matchup (e.g., LSU @ Florida)")
-    colA, colB = st.columns([3,1])
-    with colA:
-        text = st.text_area("Write-up", st.session_state["writeups"].get(game_title, ""), height=220)
-    with colB:
-        if HAS_AI and st.button("Generate with AI"):
-            prompt = f"Write a concise, data-aware betting analysis for the college football matchup: {game_title}. Structure with: EdgeLine Model Lean, Why it matters (3 bullets), Risk flags (tempo, injuries, weather, key numbers), Suggested stake guidance."
-            try:
-                resp = oai.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[{"role":"system","content":"You are EdgeLine's betting analyst."},{"role":"user","content":prompt}],
-                    temperature=0.7,
-                    max_tokens=300
-                )
-                ai_txt = resp.choices[0].message.content.strip()
-                text = ai_txt
-            except Exception as e:
-                st.error(f"AI error: {e}")
-        if st.button("Save"):
-            if game_title:
-                st.session_state["writeups"][game_title] = text
-                st.success("Saved.")
-    if st.session_state["writeups"]:
-        st.markdown("#### Saved Write-Ups")
-        for k,v in st.session_state["writeups"].items():
-            with st.expander(k):
-                st.write(v)
+if HAS_AI and st.button("Generate with AI"):
+    style = {
+        "CFB":   "college football",
+        "NCAAB": "college basketball",
+        "NBA":   "NBA basketball",
+        "NHL":   "NHL hockey",
+        "UFC":   "UFC mixed martial arts"
+    }[sport]
+    prompt = (
+        f"Write a concise, data-aware betting analysis for a {style} matchup: {game_title}. "
+        f"Include sections: EdgeLine Model Lean; Why it matters (3 bullets with stats or matchup edges); "
+        f"Risk flags (tempo/puckline/pace/injuries/weather/key numbers as relevant); "
+        f"Suggested stake guidance (Kelly-lite). Keep it sharp and readable."
+    )
+    try:
+        resp = oai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role":"system","content":"You are EdgeLine's multi-sport betting analyst."},
+                      {"role":"user","content":prompt}],
+            temperature=0.7,
+            max_tokens=320
+        )
+        ai_txt = resp.choices[0].message.content.strip()
+        text = ai_txt
+    except Exception as e:
+        st.error(f"AI error: {e}")
 
 # =================================
 # TAB 4 — UPLOAD BOARD
