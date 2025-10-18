@@ -1,0 +1,18 @@
+[theme]
+base="dark"
+primaryColor="#1E90FF"
+backgroundColor="#0F1116"
+secondaryBackgroundColor="#1C1F26"
+textColor="#FFFFFF"
+font="sans serif"
+
+[browser]
+gatherUsageStats = false
+
+[server]
+headless = true
+
+[ui]
+hideTopBar = false
+pageTitle = "EdgeLine — Sports Betting AI"
+favicon = "https://raw.githubusercontent.com/dylanjackson75-sketch/edgeline-live/main/assets/favicon.png"
