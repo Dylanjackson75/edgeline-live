@@ -65,128 +65,160 @@ DEMO_ROWS = pd.DataFrame([
 
 tab1, tab2, tab3 = st.tabs(["Auto-fetch odds (NCAAF)", "Upload board (CSV)", "Bet tracker"])
 # ================= Tab 1 ===================
-with tab1:
-    c1,c2,c3,c4 = st.columns([1,1,1,1])
-    markets = c1.multiselect("Markets", ["spreads","totals","h2h",
-                                         "player_pass_yds","player_rush_yds","player_rec_yds"],
-                             default=["spreads","totals","h2h"])
+with with tab1:
+    st.subheader("NCAAF Odds — Live Board")
+
+    # --- Controls (keep these as you had) ---
+    c1, c2, c3, c4 = st.columns([1,1,1,1])
+    markets = c1.multiselect(
+        "Markets",
+        ["spreads","totals","h2h","player_pass_yds","player_rush_yds","player_rec_yds"],
+        default=["spreads","totals","h2h"]
+    )
     regions = c2.selectbox("Region", ["us","us2"], index=0)
-    fmt     = c3.selectbox("Odds format", ["american","decimal"], index=0)
-    auto    = c4.toggle("Auto-refresh 60s", value=False)
-    books_filter = st.text_input("Book filter (comma keys e.g. betonlineag,draftkings,fanduel)", value="")
+    odds_fmt = c3.selectbox("Odds format", ["american","decimal"], index=0)
+    auto_refresh = c4.toggle("Auto-refresh (60s)", value=False)
 
-    if auto:
-        st.caption("Auto-refreshing every 60s…")
-        if "last_tick" not in st.session_state: st.session_state["last_tick"] = 0.0
-        now = time.time()
-        if now - st.session_state["last_tick"] >= 60:
-            st.session_state["last_tick"] = now
-            st.experimental_rerun()
+    # Optional preset for books
+    KNOWN_BOOKS = {
+        "betonlineag":"BetOnline","draftkings":"DraftKings","fanduel":"FanDuel",
+        "caesars":"Caesars","betmgm":"BetMGM","pointsbetus":"PointsBet",
+        "betrivers":"BetRivers","pinnacle":"Pinnacle","williamhill_us":"William Hill",
+    }
 
+    # ---- Fetch data (you already have fetch_odds + ODDS_KEY above) ----
     rows = []
     if ODDS_KEY.strip():
         try:
             with st.spinner("Fetching live board…"):
-                data = fetch_odds(",".join(markets), regions, fmt, ODDS_KEY.strip())
+                data = fetch_odds(",".join(markets), regions, odds_fmt, ODDS_KEY.strip())
             for game in data:
                 gid = game.get("id")
                 t   = game.get("commence_time")
                 home = game.get("home_team"); away = game.get("away_team")
                 for bk in game.get("bookmakers", []):
                     bk_key = (bk.get("key") or "").strip()
-                    if books_filter:
-                        allowed = [b.strip() for b in books_filter.split(",") if b.strip()]
-                        if bk_key not in allowed: 
-                            continue
                     for m in bk.get("markets", []):
                         mkey = m.get("key")
                         for out in m.get("outcomes", []):
                             rows.append({
                                 "game_id": gid, "time": t,
-                                "book_key": bk_key, "book_name": bk.get("title"),
+                                "book_key": bk_key, "book_name": KNOWN_BOOKS.get(bk_key, bk.get("title")),
                                 "market": mkey, "team": out.get("name"),
                                 "price": out.get("price"), "point": out.get("point"),
-                                "home": home, "away": away
+                                "home": home, "away": away,
                             })
-        except Exception as e:
-            st.error(f"Fetch failed ({type(e).__name__}): {e}")
-            st.info("Showing demo data instead.")
-            rows = DEMO_ROWS.to_dict("records")
+        except requests.HTTPError as e:
+            st.error(f"Odds API error: {e.response.status_code} {e.response.text[:160]}")
+            st.stop()
+        except requests.RequestException as e:
+            st.error(f"Network error contacting Odds API: {e}")
+            st.stop()
     else:
-        st.info("No API key provided — showing demo data. Add key in Secrets or the sidebar to fetch live odds.")
-        rows = DEMO_ROWS.to_dict("records")
+        st.info("No Odds API key detected — showing demo rows.")
+        rows = [
+            {"game_id":"demo1","time":"2025-10-18T20:00:00Z","book_key":"betonlineag","book_name":"BetOnline",
+             "market":"spreads","team":"ALABAMA","price":-110,"point":-6.5,"home":"ALABAMA","away":"TENNESSEE"},
+            {"game_id":"demo1","time":"2025-10-18T20:00:00Z","book_key":"betonlineag","book_name":"BetOnline",
+             "market":"totals","team":"OVER","price":-105,"point":51.5,"home":"ALABAMA","away":"TENNESSEE"},
+            {"game_id":"demo2","time":"2025-10-18T23:30:00Z","book_key":"draftkings","book_name":"DraftKings",
+             "market":"h2h","team":"GEORGIA","price":-180,"point":None,"home":"GEORGIA","away":"KENTUCKY"},
+        ]
 
     df = pd.DataFrame(rows)
-    # ---- Sportsbook filter (preset + multiselect) ----
-KNOWN_BOOKS = {
-    "betonlineag": "BetOnline",
-    "draftkings": "DraftKings",
-    "fanduel": "FanDuel",
-    "caesars": "Caesars",
-    "betmgm": "BetMGM",
-    "pointsbetus": "PointsBet",
-    "betrivers": "BetRivers",
-    "pinnacle": "Pinnacle",
-    "williamhill_us": "William Hill",
-}
 
-available_books = sorted(df.get("book_key", pd.Series([])).dropna().unique().tolist())
-pretty = lambda k: KNOWN_BOOKS.get(k, k)
+    # ---- Books preset + multiselect filter ----
+    available_books = sorted(df.get("book_key", pd.Series([])).dropna().unique().tolist())
+    pretty = lambda k: KNOWN_BOOKS.get(k, k)
 
-cB1, cB2 = st.columns([1,2])
-preset = cB1.selectbox(
-    "Books preset",
-    ["(All)", "BetOnline only", "DK only", "FD only", "DK + FD + BOL"],
-)
-preselect = []
-if preset == "BetOnline only": preselect = ["betonlineag"]
-elif preset == "DK only": preselect = ["draftkings"]
-elif preset == "FD only": preselect = ["fanduel"]
-elif preset == "DK + FD + BOL": preselect = ["draftkings","fanduel","betonlineag"]
+    cB1, cB2 = st.columns([1,2])
+    preset = cB1.selectbox("Books preset", ["(All)", "BetOnline only", "DK only", "FD only", "DK + FD + BOL"])
+    preselect = []
+    if preset == "BetOnline only": preselect = ["betonlineag"]
+    elif preset == "DK only":      preselect = ["draftkings"]
+    elif preset == "FD only":      preselect = ["fanduel"]
+    elif preset == "DK + FD + BOL": preselect = ["draftkings","fanduel","betonlineag"]
 
-selected_books = cB2.multiselect(
-    "Or pick specific books",
-    options=available_books,
-    default=preselect if preselect else available_books,
-    format_func=pretty,
-)
+    selected_books = cB2.multiselect(
+        "Or pick specific books",
+        options=available_books,
+        default=preselect if preselect else available_books,
+        format_func=pretty
+    )
+    if selected_books:
+        df = df[df["book_key"].isin(selected_books)]
 
-if selected_books:
-    df = df[df["book_key"].isin(selected_books)]
-    # ---- Quick search by team or matchup ----
-q = st.text_input("Search (team or matchup)", value="")
-if q:
-    qlow = q.strip().lower()
-# === TAB 1 ===
-with tab1:
-    # user controls (markets, region, etc.)
-    df = pd.DataFrame(rows)
+    # ---- Search by team/matchup ----
+    q = st.text_input("Search (team or matchup)", value="")
+    if q:
+        qlow = q.strip().lower()
+        df = df[
+            df["home"].fillna("").str.lower().str.contains(qlow)
+            | df["away"].fillna("").str.lower().str.contains(qlow)
+            | (df["home"].fillna("") + " @ " + df["away"].fillna("")).str.lower().str.contains(qlow)
+        ]
 
-    # show the initial table before filters (optional)
-    st.dataframe(df, use_container_width=True)
+    # ---- Normalize numeric cols ----
+    for c in ("price","point"):
+        if c in df.columns:
+            df[c] = pd.to_numeric(df[c], errors="coerce")
 
-# ---- Highlight best price per market ----
-import numpy as np
+    # ---- Best price flag per game/market/team ----
+    def pick_best(group: pd.DataFrame) -> pd.DataFrame:
+        g = group.copy()
+        g["_rank"] = g["price"].abs()
+        idx = g["_rank"].idxmin()
+        g["_best"] = False
+        if pd.notna(idx): g.loc[idx, "_best"] = True
+        return g
+    if not df.empty:
+        df = df.groupby(["game_id","market","team"], group_keys=False).apply(pick_best)
+        df["_flag"] = np.where(df.get("_best", False), "⭐ best", "")
 
-for c in ("price", "point"):
-    if c in df.columns:
-        df[c] = pd.to_numeric(df[c], errors="coerce")
+    st.write("### Board preview")
+    st.dataframe(df.drop(columns=["_rank"], errors="ignore"), use_container_width=True)
 
-def pick_best(group: pd.DataFrame) -> pd.DataFrame:
-    g = group.copy()
-    g["_rank"] = g["price"].abs()
-    idx = g["_rank"].idxmin()
-    g["_best"] = False
-    if pd.notna(idx):
-        g.loc[idx, "_best"] = True
-    return g
+    # ---- Optional compact pivot view ----
+    compact = st.toggle("Compact view (per game x book)", value=False)
+    if compact and not df.empty:
+        base_cols = ["time","home","away","book_key","market","team","point","price"]
+        d2 = df[base_cols].copy()
 
-if not df.empty:
-    df = df.groupby(["game_id", "market", "team"], group_keys=False).apply(pick_best)
-    df["_flag"] = np.where(df.get("_best", False), "⭐ best", "")
+        def label_row(r):
+            team = r["team"]
+            if r["market"] == "totals":
+                pt = "" if pd.isna(r["point"]) else f"{r['point']:g}"
+                price = "" if pd.isna(r["price"]) else f" ({int(r['price'])})"
+                return f"{team.upper()} {pt}{price}"
+            else:
+                pt = "" if pd.isna(r["point"]) else f"{r['point']:+g}"
+                price = "" if pd.isna(r["price"]) else f" ({int(r['price'])})"
+                return f"{team} {pt}{price}"
 
-st.write("### Board preview (filtered)")
-st.dataframe(df.drop(columns=["_rank"], errors="ignore"), use_container_width=True)
+        d2["label"] = d2.apply(label_row, axis=1)
+        pv = d2.pivot_table(
+            index=["time","home","away","book_key"],
+            columns="market",
+            values="label",
+            aggfunc=lambda x: " / ".join(sorted(set(x)))
+        ).reset_index()
+        st.dataframe(pv.fillna(""), use_container_width=True)
+        st.download_button(
+            "Download compact CSV",
+            pv.to_csv(index=False).encode("utf-8"),
+            "compact_odds.csv",
+            "text/csv"
+        )
+
+    # ---- Auto-refresh every 60s ----
+    if auto_refresh:
+        st.caption("Auto-refreshing every 60 seconds…")
+        if "last_tick" not in st.session_state: st.session_state["last_tick"] = 0.0
+        now = time.time()
+        if now - st.session_state["last_tick"] >= 60:
+            st.session_state["last_tick"] = now
+            st.experimental_rerun()
+
 # ================= Tab 2 ===================
 with tab2:
     st.write("Upload a BetOnline board (CSV/TSV).")
