@@ -161,8 +161,9 @@ if q:
         df["home"].fillna("").str.lower().str.contains(qlow)
         | df["away"].fillna("").str.lower().str.contains(qlow)
         | (df["home"].fillna("") + " @ " + df["away"].fillna("")).str.lower().str.contains(qlow)
-    # ---- Highlight best price per market ----
-    
+    # ---- Highlight best price per 
+# ---- Highlight best price per market ----
+import numpy as np
 
 for c in ("price","point"):
     if c in df.columns:
