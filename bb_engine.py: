@@ -1,1 +1,44 @@
+import pandas as pd, numpy as np
+from sklearn.linear_model import Ridge
 
+def fit_player_impact(players_games: pd.DataFrame) -> pd.DataFrame:
+    # Build design matrix: each row = stint/game; columns = players (on court = 1; off = 0)
+    # For simplicity, use game-level plus/minus per 100 poss as target
+    df = players_games.copy()
+    df["net100"] = (df["team_pts"] - df["opp_pts"]) * (100.0 / df["poss"].clip(lower=1))
+    # Create wide player presence matrix (starter or played > 0 mins)
+    played = df[df["minutes"] > 0]
+    mat = played.pivot_table(index=["date","team","opponent"], columns="player",
+                             values="minutes", aggfunc="sum").fillna(0.0)
+    pres = (mat > 0).astype(float)
+    y = df.groupby(["date","team","opponent"], as_index=False)["net100"].mean().set_index(["date","team","opponent"])["net100"].reindex(pres.index)
+    X = pres.values
+    model = Ridge(alpha=10.0, fit_intercept=True).fit(X, y.values)
+    coefs = pd.Series(model.coef_, index=pres.columns, name="impact_net_per100")
+    return coefs.reset_index().rename(columns={"index":"player"})
+
+def forecast_minutes(players_games: pd.DataFrame, injuries: pd.DataFrame, date: str, team: str) -> pd.DataFrame:
+    recent = players_games[(players_games["team"]==team)].sort_values("date").groupby("player").tail(10)
+    base = recent.groupby("player")["minutes"].mean().rename("exp_min").reset_index()
+    # Injury adjustment
+    out = set(injuries[(injuries["date"]<=date)&(injuries["status"].str.lower()=="out")]["player"].tolist())
+    base.loc[base["player"].isin(out), "exp_min"] = 0.0
+    # Rebalance to team total cap (NBA 240)
+    total = base["exp_min"].sum()
+    cap = 240.0
+    if total > 0:
+        base["exp_min"] = base["exp_min"] * (cap/total)
+    base["team"] = team
+    return base
+
+def project_game(players_games, injuries, date, home, away, player_impacts):
+    mh = forecast_minutes(players_games, injuries, date, home)
+    ma = forecast_minutes(players_games, injuries, date, away)
+    imp = player_impacts.set_index("player")["impact_net_per100"]
+    home_net = (mh.set_index("player")["exp_min"].mul(imp.reindex(mh["player"]).fillna(0)).sum())/240.0
+    away_net = (ma.set_index("player")["exp_min"].mul(imp.reindex(ma["player"]).fillna(0)).sum())/240.0
+    fair_spread_home = - (home_net - away_net)  # sportsbook convention
+    # Pace/total (very simple baseline; replace with learned model)
+    base_total = 225.0  # NBA baseline; learn per league
+    fair_total = base_total + 0.4*(home_net + away_net)
+    return fair_spread_home, fair_total
