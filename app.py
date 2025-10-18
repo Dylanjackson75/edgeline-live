@@ -293,7 +293,78 @@ if not df.empty:
             return " / ".join(parts)
         merged["_move"] = merged.apply(fmt, axis=1)
         return merged
+def row_prob(r):
+    mk = r.get("market")
+    price = r.get("price")
+    point = r.get("point")
+    if sport in ("NBA","NCAAB"):
+        if mk and mk.startswith("spreads") and pd.notna(point):
+            # team here is the side (home/away or team name); assume spread posted in book convention = home number
+            fair = r.get("fair_spread_home")
+            if pd.isna(fair): return np.nan
+            # If this outcome is the HOME side, prob = cover vs book spread; if AWAY, invert
+            # Heuristic: treat team==home as home side for spreads in Odds API (often true)
+            is_home_side = str(r.get("team","")).upper() == str(r.get("home","")).upper()
+            p = prob_cover(fair, point, spread_sigma)
+            return p if is_home_side else (1-p)
+        if mk and mk.startswith("totals") and pd.notna(point):
+            # team field is OVER/UNDER
+            fairT = r.get("fair_total")
+            if pd.isna(fairT): return np.nan
+            if str(r.get("team","")).upper().startswith("OVER"):
+                return prob_over(fairT, point, total_sigma)
+            else:
+                return 1 - prob_over(fairT, point, total_sigma)
+        if mk == "h2h":  # moneyline
+            # Use spread-based implied? Without explicit ML fair, derive soft from spread:
+            fair = r.get("fair_spread_home")
+            if pd.isna(fair): return np.nan
+            # Convert spread to ML-ish prob with a soft mapping
+            p_home = 0.5*(1 + erf((-fair)/ (spread_sigma*sqrt(2))))  # negative fair => home fav increases p_home
+            is_home_ml = str(r.get("team","")).upper() == str(r.get("home","")).upper()
+            return p_home if is_home_ml else 1-p_home
 
+    if sport == "NHL":
+        if mk == "h2h":
+            is_home_ml = str(r.get("team","")).upper() == str(r.get("home","")).upper()
+            p_home = r.get("p_home_ml")
+            if pd.isna(p_home): return np.nan
+            return p_home if is_home_ml else 1-p_home
+        if mk == "h2h_3way":
+            name = str(r.get("team","")).upper()
+            if "DRAW" in name or "TIE" in name:
+                return r.get("p_draw_reg")
+            is_home = name == str(r.get("home","")).upper()
+            return r.get("p_home_reg") if is_home else r.get("p_away_reg")
+        if mk and mk.startswith("totals") and pd.notna(point):
+            # Without a totals model yet, assume neutral 6.2; tweak by future xG model
+            fairT = 6.2
+            if str(r.get("team","")).upper().startswith("OVER"):
+                return prob_over(fairT, point, total_sigma)
+            else:
+                return 1 - prob_over(fairT, point, total_sigma)
+
+    if sport == "UFC":
+        if mk == "h2h":
+            is_home = str(r.get("team","")).upper() == str(r.get("home","")).upper()
+            p_home = r.get("p_home_win")
+            if pd.isna(p_home): return np.nan
+            return p_home if is_home else 1 - p_home
+
+    return np.nan
+
+def row_kelly(r):
+    p = r.get("_p")
+    odds = r.get("price")
+    if pd.isna(p) or pd.isna(odds): return 0.0
+    return kelly_fraction_from_prob(float(p), float(odds)) * kelly_scale
+
+# Compute per-row probability and Kelly
+if not df.empty:
+    curr["_p"] = curr.apply(row_prob, axis=1)
+    curr["_kelly"] = curr.apply(row_kelly, axis=1).clip(lower=0)
+    # rank by Kelly then steam/key/move as before
+    curr = curr.sort_values(["_kelly","_crossed_key","_steam","_move_score"], ascending=[False,False,False,False])
     curr = compute_deltas(st.session_state["last_board"], df.copy())
     st.session_state["last_board"] = df.copy()
 
