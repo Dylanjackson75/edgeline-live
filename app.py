@@ -152,33 +152,36 @@ if "bets" not in st.session_state:
 with tab_dashboard:
     st.subheader("Top Value Bets (live)")
 
-    rows = []
-    if ODDS_KEY:
-        try:
-            with st.spinner("Fetching live odds…"):
-                data = fetch_odds(",".join(markets), regions, odds_fmt, ODDS_KEY)
-            for game in data:
-                gid = game.get("id")
-                t = game.get("commence_time")
-                home, away = game.get("home_team"), game.get("away_team")
-                for bk in game.get("bookmakers", []):
-                    bk_key = (bk.get("key") or "").strip()
-                    bk_name = KNOWN_BOOKS.get(bk_key, bk.get("title"))
-                    for m in bk.get("markets", []):
-                        mkey = m.get("key")
-                        for out in m.get("outcomes", []):
-                            rows.append({
-                                "game_id": gid, "time": t,
-                                "book_key": bk_key, "book_name": bk_name,
-                                "market": mkey, "team": out.get("name"),
-                                "price": out.get("price"), "point": out.get("point"),
-                                "home": home, "away": away
-                            })
-        except requests.RequestException as e:
-            st.error(f"Odds fetch failed: {e}")
-    else:
-        st.info("Demo mode (no live key).")
-        rows = [
+ rows = []
+if ODDS_KEY:
+    try:
+        with st.spinner(f"Fetching live odds for {sport}…"):
+            data = fetch_odds_for_sport(
+                sport_info["odds_key"], ",".join(markets), regions, odds_fmt, ODDS_KEY
+            )
+        for game in data:
+            gid = game.get("id")
+            t = game.get("commence_time")
+            home, away = game.get("home_team"), game.get("away_team")
+            # UFC: some feeds use 'home_team'/'away_team' loosely; still fine for listing fights.
+            for bk in game.get("bookmakers", []):
+                bk_key = (bk.get("key") or "").strip()
+                bk_name = KNOWN_BOOKS.get(bk_key, bk.get("title"))
+                for m in bk.get("markets", []):
+                    mkey = m.get("key")  # e.g., spreads, totals, h2h, h2h_3way, spreads:1st_half
+                    for out in m.get("outcomes", []):
+                        rows.append({
+                            "sport": sport, "game_id": gid, "time": t,
+                            "book_key": bk_key, "book_name": bk_name,
+                            "market": mkey, "team": out.get("name"),
+                            "price": out.get("price"), "point": out.get("point"),
+                            "home": home, "away": away
+                        })
+    except requests.RequestException as e:
+        st.error(f"Odds fetch failed: {e}")
+else:
+    st.info(f"Demo mode — no THE_ODDS_API_KEY. Showing {sport} placeholders.")
+    # (optional) keep your demo rows here if you like
             {"game_id":"demo1","time":"2025-10-18T20:00:00Z","book_key":"betonlineag","book_name":"BetOnline","market":"spreads","team":"ALABAMA","price":-110,"point":-6.5,"home":"ALABAMA","away":"TENNESSEE"},
             {"game_id":"demo1","time":"2025-10-18T20:00:00Z","book_key":"draftkings","book_name":"DraftKings","market":"spreads","team":"ALABAMA","price":-105,"point":-6.0,"home":"ALABAMA","away":"TENNESSEE"},
             {"game_id":"demo1","time":"2025-10-18T20:00:00Z","book_key":"fanduel","book_name":"FanDuel","market":"totals","team":"OVER","price":-102,"point":51.5,"home":"ALABAMA","away":"TENNESSEE"},
