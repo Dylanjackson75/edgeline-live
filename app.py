@@ -414,3 +414,34 @@ with tab_tracker:
             })
         else:
             st.warning("Enter Game and Pick.")
+with tab_tracker:
+    st.subheader("Bet Tracker")
+    c0,c1,c2,c3,c4,c5,c6,c7 = st.columns([1,1.6,1,1,1,1,1,1])
+    with c0:
+        bt_sport = st.selectbox("Sport", list(SPORTS.keys()), index=list(SPORTS.keys()).index(sport))
+    with c1:
+        gm = st.text_input("Event (e.g., LSU @ Florida / Oilers @ Stars / Gaethje vs Poirier)")
+    with c2:
+        market = st.selectbox("Market", ["FT Spread","FT Total","1H Spread","1H Total","1Q Spread","1Q Total","ML","3-Way ML"])
+    with c3:
+        period = st.text_input("Period (e.g., 1H / 1Q / Reg / OT incl.)", value="")
+    with c4:
+        pick = st.text_input("Pick (e.g., LSU -3.5 / OVER 55.5 / Oilers Reg / Gaethje ML)")
+    with c5:
+        odds = st.number_input("Odds (American)", value=-110, step=1)
+    with c6:
+        stake = st.number_input("Stake ($)", value=50.0, step=5.0)
+    with c7:
+        cl = st.text_input("Closing line (optional)", value="")
+    if st.button("Add bet"):
+        if gm and pick:
+            st.session_state["bets"].append({
+                "time": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "sport": bt_sport,
+                "event": gm, "market": market, "period": period,
+                "pick": pick, "odds": int(odds), "stake": float(stake),
+                "closing_line": cl, "result":"open", "payout":0.0
+            })
+            st.success("Bet added.")
+        else:
+            st.warning("Enter Event and Pick.")
