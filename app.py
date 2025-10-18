@@ -7,7 +7,10 @@ import streamlit as st
 # -------------------- App header -------------------- #
 st.set_page_config(page_title="EdgeLine — Live Odds", layout="wide")
 st.title("EdgeLine — Live Odds +EV Workspace")
-
+st.image(
+    "https://raw.githubusercontent.com/dylanjackson75-sketch/edgeline-live/main/assets/edgeline_logo.png",
+    width=200,
+)
 # -------------------- Secrets / keys -------------------- #
 ODDS_KEY = st.secrets.get("THE_ODDS_API_KEY", "") or os.getenv("THE_ODDS_API_KEY", "")
 key_source = None
