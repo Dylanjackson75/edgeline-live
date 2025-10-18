@@ -157,15 +157,20 @@ if selected_books:
 q = st.text_input("Search (team or matchup)", value="")
 if q:
     qlow = q.strip().lower()
-    df = df[
-        df["home"].fillna("").str.lower().str.contains(qlow)
-        | df["away"].fillna("").str.lower().str.contains(qlow)
-        | (df["home"].fillna("") + " @ " + df["away"].fillna("")).str.lower().str.contains(qlow)
-    # ---- Highlight best price per 
-# ---- Highlight best price per market --
-for c in ("price","point"):
-if c in df.columns:
-df[c] = pd.to_numeric(df[c], errors="coerce")
+# === TAB 1 ===
+with tab1:
+    # user controls (markets, region, etc.)
+    df = pd.DataFrame(rows)
+
+    # show the initial table before filters (optional)
+    st.dataframe(df, use_container_width=True)
+
+# ---- Highlight best price per market ----
+import numpy as np
+
+for c in ("price", "point"):
+    if c in df.columns:
+        df[c] = pd.to_numeric(df[c], errors="coerce")
 
 def pick_best(group: pd.DataFrame) -> pd.DataFrame:
     g = group.copy()
@@ -177,16 +182,11 @@ def pick_best(group: pd.DataFrame) -> pd.DataFrame:
     return g
 
 if not df.empty:
-    df = df.groupby(["game_id","market","team"], group_keys=False).apply(pick_best)
+    df = df.groupby(["game_id", "market", "team"], group_keys=False).apply(pick_best)
     df["_flag"] = np.where(df.get("_best", False), "⭐ best", "")
-    ]
-    st.write("### Board preview")
-    st.write("### Board preview (filtered)")
-st.dataframe(df.drop(columns=["_rank"], errors="ignore"), use_container_width=True)
-    st.download_button("Download current board (CSV)",
-                       df.to_csv(index=False).encode("utf-8"),
-                       "ncaaf_live_odds.csv", "text/csv")
 
+st.write("### Board preview (filtered)")
+st.dataframe(df.drop(columns=["_rank"], errors="ignore"), use_container_width=True)
 # ================= Tab 2 ===================
 with tab2:
     st.write("Upload a BetOnline board (CSV/TSV).")
