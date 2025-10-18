@@ -161,6 +161,25 @@ if q:
         df["home"].fillna("").str.lower().str.contains(qlow)
         | df["away"].fillna("").str.lower().str.contains(qlow)
         | (df["home"].fillna("") + " @ " + df["away"].fillna("")).str.lower().str.contains(qlow)
+    # ---- Highlight best price per market ----
+import numpy as np
+
+for c in ("price","point"):
+    if c in df.columns:
+        df[c] = pd.to_numeric(df[c], errors="coerce")
+
+def pick_best(group: pd.DataFrame) -> pd.DataFrame:
+    g = group.copy()
+    g["_rank"] = g["price"].abs()
+    idx = g["_rank"].idxmin()
+    g["_best"] = False
+    if pd.notna(idx):
+        g.loc[idx, "_best"] = True
+    return g
+
+if not df.empty:
+    df = df.groupby(["game_id","market","team"], group_keys=False).apply(pick_best)
+    df["_flag"] = np.where(df.get("_best", False), "⭐ best", "")
     ]
     st.write("### Board preview")
     st.dataframe(df, use_container_width=True)
