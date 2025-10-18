@@ -215,7 +215,29 @@ else:
     df = pd.DataFrame(rows)
     for c in ("price","point"):
         if c in df.columns: df[c] = pd.to_numeric(df[c], errors="coerce")
+# Build per-game fair numbers by sport
+fairs = {}
+if not df.empty:
+    games = df[["game_id","time","home","away"]].dropna().drop_duplicates()
+    for _, g in games.iterrows():
+        gid, t, home, away = g["game_id"], g["time"], str(g["home"]), str(g["away"])
+        if sport in ("NBA","NCAAB"):
+            level = "NBA" if sport=="NBA" else "NCAAB"
+            fs, ft = bb_project(date=str(t)[:10], home=home, away=away, level=level)
+            fairs[gid] = {"fair_spread_home": fs, "fair_total": ft}
+        elif sport == "NHL":
+            nhl = project_game_nhl(home, away, base_draw_rate=draw_rate)
+            fairs[gid] = {**nhl}  # p_home_ml, p_away_ml, p_home_reg, p_draw_reg, p_away_reg
+        elif sport == "UFC":
+            # Without fighter DB, fallback to 50/50 (still produces EV/Kelly vs prices)
+            fairs[gid] = {"p_home_win": default_prob(), "p_away_win": default_prob()}
+        else:
+            fairs[gid] = {}
 
+    fair_df = pd.DataFrame([
+        {"game_id": k, **v} for k,v in fairs.items()
+    ])
+    df = df.merge(fair_df, on="game_id", how="left")
     # Books filter
     available_books = sorted(df.get("book_key", pd.Series([])).dropna().unique().tolist())
     preselect = available_books
