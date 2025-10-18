@@ -1,16 +1,18 @@
-import os, time
+# app.py  — minimal sanity check
+import os
+import time
 import requests
 import pandas as pd
 import numpy as np
 import streamlit as st
-st.set_page_config(page_title="EdgeLine — Live Odds", layout="wide")
-st.title("EdgeLine — Live Odds +EV Workspace")
 
-# ---- Optional backend health (won't block odds) ----
-API_BASE = st.secrets.get("API_BASE","")
-API_KEY  = st.secrets.get("API_KEY","")
-status = st.empty()
-if API_BASE:
+def main():
+    st.set_page_config(page_title="EdgeLine - Live Odds", layout="wide")
+    st.title("EdgeLine — Live Odds +EV Workspace")
+    st.success("✅ Imports OK. Streamlit booted. If you can see this, your env and header are fine.")
+
+if __name__ == "__main__":
+    main()
     try:
         r = requests.get(f"{API_BASE}/health",
                          headers={"X-API-Key": API_KEY} if API_KEY else {},
