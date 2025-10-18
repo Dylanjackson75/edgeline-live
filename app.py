@@ -65,7 +65,7 @@ DEMO_ROWS = pd.DataFrame([
 
 tab1, tab2, tab3 = st.tabs(["Auto-fetch odds (NCAAF)", "Upload board (CSV)", "Bet tracker"])
 # ================= Tab 1 ===================
-with with tab1:
+with tab1:
     st.subheader("NCAAF Odds — Live Board")
 
     # --- Controls (keep these as you had) ---
