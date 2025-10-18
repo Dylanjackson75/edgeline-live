@@ -109,26 +109,29 @@ def median_fair_price(df_gbt: pd.DataFrame) -> float:
 # -------------------- Sidebar -------------------- #
 with st.sidebar:
     st.header("Controls")
+
+    sport = st.selectbox("Sport / League", list(SPORTS.keys()), index=0)
+    sport_info = SPORTS[sport]
+
+    # Default markets per sport (editable)
+    default_markets = sport_info["default_markets"]
     markets = st.multiselect(
         "Markets",
-        ["spreads","totals","h2h"],
-        default=["spreads","totals","h2h"]
+        options=sorted(set(default_markets + ["spreads","totals","h2h","spreads:1st_half","totals:1st_half","spreads:1st_quarter","totals:1st_quarter","h2h_3way"])),
+        default=default_markets
     )
+
     regions = st.selectbox("Region", ["us","us2"], 0)
     odds_fmt = st.selectbox("Odds format", ["american","decimal"], 0)
     auto_refresh = st.toggle("Auto-refresh (60s)", value=False)
+
     books_preset = st.selectbox("Books preset", ["(All)","BetOnline only","DK only","FD only","DK+FD+BOL"], 0)
-    query = st.text_input("Search team/matchup", "")
+    query = st.text_input("Search team/matchup/fighter", "")
+
     st.divider()
     st.caption("API keys")
-    if ODDS_KEY:
-        st.success("The Odds API key loaded")
-    else:
-        st.warning("Add THE_ODDS_API_KEY in Secrets to fetch live odds.")
-    if HAS_AI:
-        st.success("OpenAI key loaded (AI write-ups/chat on)")
-    else:
-        st.info("AI write-ups/chat disabled (no OPENAI_API_KEY).")
+    st.success("The Odds API key loaded" if ODDS_KEY else "Add THE_ODDS_API_KEY in Secrets to fetch live odds.")
+    if HAS_AI: st.success("OpenAI key loaded (AI write-ups/chat on)")
 
 # -------------------- Tabs -------------------- #
 tab_dashboard, tab_props, tab_writeups, tab_upload, tab_tracker, tab_chat = st.tabs(
