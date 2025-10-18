@@ -1,5 +1,5 @@
 import time, os, requests, pandas as pd, streamlit as st
-
+import numpy as np
 st.set_page_config(page_title="EdgeLine — Live Odds", layout="wide")
 st.title("EdgeLine — Live Odds +EV Workspace")
 
@@ -162,7 +162,7 @@ if q:
         | df["away"].fillna("").str.lower().str.contains(qlow)
         | (df["home"].fillna("") + " @ " + df["away"].fillna("")).str.lower().str.contains(qlow)
     # ---- Highlight best price per market ----
-import numpy as np
+    
 
 for c in ("price","point"):
     if c in df.columns:
