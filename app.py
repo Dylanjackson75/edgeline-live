@@ -3,7 +3,28 @@ import requests
 import pandas as pd
 import numpy as np
 import streamlit as st
+from bb_engine import project_game as bb_project
+from nhl_engine import project_game_nhl
+from mma_engine import fight_prob, default_prob
 
+def american_to_decimal(odds: float) -> float:
+    return 1 + (100/abs(odds) if odds < 0 else odds/100)
+
+def kelly_fraction_from_prob(p: float, american_odds: float) -> float:
+    if p is None or np.isnan(p): return 0.0
+    b = american_to_decimal(american_odds) - 1.0
+    q = 1 - p
+    return max(0.0, (b*p - q) / b) if b > 0 else 0.0
+
+# Gaussian approx for spread/total cover probs
+from math import erf, sqrt
+def prob_cover(fair_line: float, book_line: float, sigma: float) -> float:
+    z = (book_line - fair_line) / sigma
+    return 0.5*(1 + erf(z/sqrt(2)))
+
+def prob_over(fair_total: float, book_total: float, sigma: float) -> float:
+    z = (fair_total - book_total) / sigma
+    return 0.5*(1 + erf(z/sqrt(2)))
 # -------------------- Setup -------------------- #
 st.set_page_config(page_title="EdgeLine — Predict. Play. Profit.", layout="wide")
 
