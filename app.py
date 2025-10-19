@@ -16,7 +16,7 @@ DEMO_ROWS = [
     {"sport":"CFB","matchup":"Oregon @ Utah","market":"totals","point":47.5,"price":-105,"book":"DemoBook"},
     {"sport":"CFB","matchup":"Duke @ Miami","market":"spreads","point":"+14","price":-108,"book":"DemoBook"},
 ]
-
+# version 2.0.1
 def fetch_odds_or_demo(sport_key: str, markets: str):
     if not THE_ODDS_API_KEY:
         return DEMO_ROWS, "demo (no key)"
