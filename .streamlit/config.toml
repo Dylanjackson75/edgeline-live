@@ -8,5 +8,8 @@ textColor = "#FFFFFF"
 [server]
 headless = true
 
+[browser]
+gatherUsageStats = false
+
 [ui]
-favicon = "assets/edgeline_logo_dark.png"
+favicon = "assets/edgeline_logo_black.png"
