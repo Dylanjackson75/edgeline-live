@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>EdgeLine — Predict. Play. Profit.</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Icons and link preview -->
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="icon" href="/apple-touch-icon.png">
+  <meta property="og:title" content="EdgeLine — Predict. Play. Profit.">
+  <meta property="og:description" content="Live odds, value bets, EV/Kelly, trackers and write-ups.">
+  <meta property="og:image" content="https://dylanjackson75.github.io/edgeline-link/og-image.png">
+  <meta name="theme-color" content="#000000">
+
+  <!-- redirect to your live Streamlit app -->
+  <meta http-equiv="refresh" content="0; url=https://edgeline.streamlit.app">
+  <script>location.href="https://edgeline.streamlit.app";</script>
+
+  <style>
+    html,body{height:100%;margin:0;background:#000;
+      color:#d4af37;display:flex;align-items:center;justify-content:center;
+      font:500 18px -apple-system,system-ui,Segoe UI,Roboto}
+    .tag{display:inline-block;margin-top:8px;padding:6px 10px;
+      border:1px solid #2a2a2a;border-radius:999px;
+      background:#0b0b0b;color:#8ff09a;}
+  </style>
+</head>
+<body>
+  <div>
+    <img src="/apple-touch-icon.png" alt="EdgeLine" width="96" height="96"
+      style="display:block;margin:0 auto 12px;border-radius:22px">
+    <div style="text-align:center">Loading EdgeLine…</div>
+    <div class="tag">Predict. Play. Profit.</div>
+  </div>
+</body>
+</html>
