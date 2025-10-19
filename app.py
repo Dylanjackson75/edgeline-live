@@ -1,23 +1,43 @@
-# ───────────── EdgeLine — clean, working base (full file) ─────────────
-import os, time, math
+# ───────────────────── EdgeLine — working Streamlit app.py ─────────────────────
+import os, math, time
 from pathlib import Path
-
-import numpy as np
-import pandas as pd
 import requests
+import pandas as pd
+import numpy as np
 import streamlit as st
 
-# ── Paths / Assets
+# ---------- Branding helpers ----------
 ASSETS = Path("assets")
 
-# ── Page meta (uses your gold E favicon if present)
+def _safe_list_assets():
+    try:
+        return sorted(os.listdir(ASSETS)) if ASSETS.exists() else []
+    except Exception:
+        return []
+
+def _find_asset(candidates):
+    exts = (".png", ".jpg", ".jpeg", ".webp")
+    files = {f.lower(): f for f in _safe_list_assets()}
+    for base in candidates:
+        base_low = base.lower()
+        for ext in exts:
+            name = base_low + ext
+            if name in files:
+                return str(ASSETS / files[name])
+        if base_low in files:
+            return str(ASSETS / files[base_low])
+    return ""
+
+def _pick_favicon():
+    return _find_asset(["favicon", "edgeline_logo_black_gold", "edgeline_logo", "logo"])
+
 st.set_page_config(
     page_title="EdgeLine — Predict. Play. Profit.",
-    page_icon=str(ASSETS / "favicon.png") if (ASSETS / "favicon.png").exists() else None,
+    page_icon=_pick_favicon(),
     layout="wide",
 )
 
-# ── Branding CSS + Header
+# ---------- Header styling ----------
 def _edgeline_css():
     st.markdown(
         """
@@ -35,116 +55,35 @@ def _edgeline_css():
             border-radius:999px; font-weight:600; font-size:.9rem; letter-spacing:.04em;
             background:rgba(122,245,122,.07);
           }
-          .edge-header h1 { margin:0; padding:0; line-height:1.1 }
+          .edge-header h1 { margin:0; padding:0; line-height:1.1; color:#FFD700; }
         </style>
-        """,
-        unsafe_allow_html=True,
+        """, unsafe_allow_html=True
     )
 
 def edge_header():
     _edgeline_css()
-    dark = ASSETS / "edgeline_logo_dark.png"
-    light = ASSETS / "edgeline_logo_light.png"
-    if dark.exists():
-        st.image(str(dark), width=200)
-    elif light.exists():
-        st.image(str(light), width=200)
+    logo = _find_asset(["edgeline_logo_black_gold", "edgeline_logo", "logo"])
+    emblem = _find_asset(["favicon", "icon"])
+
+    if logo:
+        st.image(logo, width=220)
+    elif emblem:
+        st.image(emblem, width=140)
+    else:
+        st.error("No logo found in /assets. Upload edgeline_logo_black_gold.png or favicon.png")
+
     st.markdown(
         "<div class='edge-header'><h1>EdgeLine</h1>"
         "<div class='edge-tagline'>PREDICT. PLAY. PROFIT.</div></div>",
         unsafe_allow_html=True,
     )
 
-# ── Secrets helper (won’t crash if missing)
-def get_secret(name: str, default: str = "") -> str:
-    try:
-        return st.secrets[name]
-    except Exception:
-        return os.getenv(name, default)
+    used = logo or emblem or "(none)"
+    listing = ", ".join(sorted(os.listdir(ASSETS))) if ASSETS.exists() else "(assets folder missing)"
+    st.caption(f"Logo source: {used}  •  assets/: {listing}")
 
-THE_ODDS_API_KEY = get_secret("THE_ODDS_API_KEY")
-OPENAI_API_KEY   = get_secret("OPENAI_API_KEY")
-API_BASE         = get_secret("API_BASE", "https://edgeline-api.onrender.com")
-
-# ── Safe odds fetch (skips if key missing/unauthorized)
-def fetch_example_odds():
-    if not THE_ODDS_API_KEY:
-        return pd.DataFrame(), "No THE_ODDS_API_KEY set — skipping live fetch."
-    url = (
-        "https://api.the-odds-api.com/v4/sports/americanfootball_ncaaf/odds"
-        "?regions=us&markets=spreads,totals&oddsFormat=american"
-        f"&apiKey={THE_ODDS_API_KEY}"
-    )
-    try:
-        r = requests.get(url, timeout=15)
-        if r.status_code == 401:
-            return pd.DataFrame(), "401 Unauthorized from Odds API — check/upgrade your key."
-        r.raise_for_status()
-        data = r.json()
-        # Flatten a tiny sample for display
-        rows = []
-        for g in data[:20]:
-            home = g.get("home_team"); away = g.get("away_team")
-            commence = g.get("commence_time")
-            bookmakers = g.get("bookmakers", [])
-            if not bookmakers:
-                continue
-            bm = bookmakers[0]
-            mkts = {m["key"]: m for m in bm.get("markets", [])}
-            def pick_line(mkt_key, out_key):
-                m = mkts.get(mkt_key, {})
-                for o in m.get("outcomes", []):
-                    if out_key.lower() in o.get("name","").lower():
-                        return o.get("point"), o.get("price")
-                return None, None
-            s_home, s_home_price = pick_line("spreads", home or "")
-            t_over, t_over_price = pick_line("totals", "Over")
-            rows.append({
-                "home": home, "away": away, "time": commence,
-                "spread_home": s_home, "spread_home_price": s_home_price,
-                "total_over": t_over, "total_over_price": t_over_price,
-                "book": bm.get("title")
-            })
-        return pd.DataFrame(rows), None
-    except Exception as e:
-        return pd.DataFrame(), f"Fetch error: {e}"
-
-# ── APP UI
 edge_header()
 
-tab_dash, tab_bets, tab_settings = st.tabs(["📊 Dashboard", "🎯 Value Bets", "⚙️ Settings"])
-
-with tab_dash:
-    st.subheader("Status")
-    msgs = []
-    if not THE_ODDS_API_KEY:
-        msgs.append("Odds: **No THE_ODDS_API_KEY** found (app will run without live odds).")
-    if not OPENAI_API_KEY:
-        msgs.append("AI: **No OPENAI_API_KEY** found (write-ups/chat disabled).")
-    if msgs:
-        for m in msgs:
-            st.warning(m)
-    else:
-        st.success("All keys detected.")
-
-    st.subheader("Live Odds (sample)")
-    df, err = fetch_example_odds()
-    if err:
-        st.info(err)
-    if not df.empty:
-        st.dataframe(df, use_container_width=True, hide_index=True)
-    else:
-        st.caption("No rows to show yet.")
-
-with tab_bets:
-    st.subheader("Your Board")
-    st.write("Upload a board CSV or connect your feed when ready. (This tab will populate with +EV once odds are flowing.)")
-
-with tab_settings:
-    st.subheader("Environment")
-    col1, col2, col3 = st.columns(3)
-    col1.code(f"THE_ODDS_API_KEY set: {bool(THE_ODDS_API_KEY)}")
-    col2.code(f"OPENAI_API_KEY set: {bool(OPENAI_API_KEY)}")
-    col3.code(f"API_BASE: {API_BASE}")
-    st.caption("Edit in Streamlit → ⋮ → Settings → Secrets")
-# ──────────────────────────────────────────────────────────────────────
+# ---------- Placeholder main area ----------
+st.markdown("### Welcome to EdgeLine — your smart betting edge.")
+st.write("Odds data, props, and analysis modules load here.")
