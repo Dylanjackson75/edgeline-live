@@ -52,9 +52,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-logo = find_asset(["edgeline_logo_gradient", "edgeline_logo_black_gold", "edgeline_logo", "logo"])
-if logo:
-    st.image(logo, width=220)
+logo = "assets/edgeline_logo_dark.png"
 st.markdown(
     """<div class='edge-header'><h1>EdgeLine</h1>
     <div class='edge-tagline'>PREDICT. PLAY. PROFIT.</div></div>""",
