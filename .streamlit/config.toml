@@ -1,15 +1,14 @@
 [theme]
-base = "dark"
-primaryColor = "#D4AF37"
-backgroundColor = "#000000"
-secondaryBackgroundColor = "#111111"
-textColor = "#FFFFFF"
+base="dark"
+primaryColor="#D4AF37"
+backgroundColor="#000000"
+secondaryBackgroundColor="#111111"
+textColor="#FFFFFF"
 
 [server]
-headless = true
+headless=true
+enableCORS=false
 
 [browser]
-gatherUsageStats = false
-
-[ui]
-favicon = "assets/edgeline_logo_black.png"
+gatherUsageStats=false
+favicon="assets/favicon.png"
