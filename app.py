@@ -281,6 +281,7 @@ if "bets" not in st.session_state:
 # =========================================================
 # TAB 1 — Top Value Bets (Live + movement + best price + EV/Kelly)
 # =========================================================
+st.info("Multi-sport odds, movement, fair numbers, EV/Kelly, props, write-ups, bet tracking, and chat.", icon="✨")
 with tab_dashboard:
     st.subheader("Top Value Bets (live)")
 
