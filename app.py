@@ -11,6 +11,45 @@ ASSETS = pathlib.Path("assets")
 
 st.set_page_config(
     page_title="EdgeLine — Predict. Play. Profit.",
+    def _edgeline_css():
+    st.markdown(
+        """
+        <style>
+          :root { --edge-gold:#D4AF37; --edge-green:#7AF57A; --edge-ink:#F2F2F2; --edge-bg:#0B0B0B; }
+          .stApp {
+            background:
+              radial-gradient(1200px 600px at 20% -10%, rgba(212,175,55,.12), transparent 60%),
+              radial-gradient(1200px 600px at 90% 10%, rgba(122,245,122,.06), transparent 60%),
+              #0B0B0B;
+          }
+          .edge-tagline {
+            display:inline-block; margin:.25rem 0 1rem 0; padding:6px 10px;
+            border:1px solid rgba(122,245,122,.25); color:#7AF57A;
+            border-radius:999px; font-weight:600; font-size:.9rem; letter-spacing:.04em;
+            background:rgba(122,245,122,.07);
+          }
+          .edge-header h1 { margin:0; padding:0; line-height:1.1 }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+def edge_header():
+    _edgeline_css()
+    dark = ASSETS / "edgeline_logo_dark.png"
+    light = ASSETS / "edgeline_logo_light.png"
+    if dark.exists():
+        st.image(str(dark), width=200)
+    elif light.exists():
+        st.image(str(light), width=200)
+    st.markdown(
+        "<div class='edge-header'><h1>EdgeLine</h1>"
+        "<div class='edge-tagline'>PREDICT. PLAY. PROFIT.</div></div>",
+        unsafe_allow_html=True,
+    )
+
+# show header on app load
+edge_header()
     page_icon=str(ASSETS / "favicon.png"),
     layout="wide",
 )
