@@ -9,7 +9,9 @@ import base64, pathlib, streamlit as st
 
 ASSETS = pathlib.Path("assets")
 
-st.set_page_config(
+st.set_page_config
+layout="wide",
+)
     page_title="EdgeLine — Predict. Play. Profit.",
 # --- EdgeLine minimal header (safe paste) ---
 def edge_header():
