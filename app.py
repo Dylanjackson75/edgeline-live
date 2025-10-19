@@ -4,6 +4,76 @@ import numpy as np
 import requests
 import streamlit as st
 from math import erf, sqrt
+# --- EdgeLine branding ---
+import base64, pathlib, streamlit as st
+
+ASSETS = pathlib.Path("assets")
+
+st.set_page_config(
+    page_title="EdgeLine — Predict. Play. Profit.",
+    page_icon=str(ASSETS / "favicon.png"),
+    layout="wide",
+)
+
+def _inject_css():
+    css = f"""
+    <style>
+      :root {{
+        --edge-gold: #D4AF37;
+        --edge-green: #7AF57A;
+        --edge-black: #0B0B0B;
+        --edge-ink:   #F2F2F2;
+      }}
+      /* Gradient page background */
+      .stApp {{
+        background: radial-gradient(1200px 600px at 20% -10%, rgba(212,175,55,0.12), transparent 60%),
+                    radial-gradient(1200px 600px at 90% 10%, rgba(122,245,122,0.06), transparent 60%),
+                    #0B0B0B;
+      }}
+      /* Cards/panels polish */
+      .st-emotion-cache-1r4qj8v, .st-emotion-cache-1dp5vir, .st-emotion-cache-1r6slb0 {{
+        border: 1px solid rgba(212,175,55,0.15);
+        box-shadow: 0 0 0 1px rgba(255,255,255,0.02) inset, 0 10px 30px rgba(0,0,0,0.35);
+        border-radius: 14px;
+      }}
+      /* H1/H2 styling */
+      h1, .stMarkdown h1 {{ letter-spacing: 0.2px; }}
+      h1 strong, h2 strong {{ color: var(--edge-gold); }}
+      /* Tagline pill */
+      .edge-tagline {{
+        display:inline-block; margin-top:4px; padding:6px 10px;
+        border:1px solid rgba(122,245,122,0.25); color:#7AF57A; border-radius:999px;
+        font-weight:600; font-size:0.9rem; letter-spacing:0.04em;
+        background: rgba(122,245,122,0.07);
+      }}
+      /* Buttons */
+      .stButton>button {{
+        border-radius: 12px;
+        border: 1px solid rgba(212,175,55,0.35);
+        background: linear-gradient(180deg, rgba(212,175,55,0.18), rgba(212,175,55,0.10));
+        color: var(--edge-ink);
+      }}
+      .stButton>button:hover {{
+        border-color: var(--edge-gold);
+        box-shadow: 0 0 0 2px rgba(212,175,55,0.25) inset;
+      }}
+      /* Links */
+      a, .stMarkdown a {{ color: var(--edge-green) !important; }}
+    </style>
+    """
+    st.markdown(css, unsafe_allow_html=True)
+
+def edge_header():
+    logo_path = ASSETS / "edgeline_logo_dark.png"
+    if logo_path.exists():
+        st.image(str(logo_path), width=180)
+    st.markdown(
+        "<h1 style='margin:0'>EdgeLine</h1>"
+        "<div class='edge-tagline'>PREDICT. PLAY. PROFIT.</div>",
+        unsafe_allow_html=True
+    )
+
+_inject_css()
 
 # =========================
 # App & Secrets
