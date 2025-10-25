@@ -7,7 +7,19 @@ from math import radians, sin, cos, asin, sqrt
 # CONFIG
 # =============================
 
-ODDS_API_KEY = "YOUR_ODDS_API_KEY_HERE"  # <-- put your live odds API key
+# =============================
+# EDGE LINE — CFB ENGINE KEYS
+# =============================
+
+# Odds API key (live key)
+ODDS_API_KEY = "2705f4f8fea5a5ea49dd1615b8f048dd"
+
+# CollegeFootballData API key (you’ll add yours here next)
+CFBD_API_KEY = "PASTE_YOUR_CFBD_API_KEY_HERE"
+
+# Odds API sport code for college football
+SPORT_KEY = "americanfootball_ncaaf"
+
 CFBD_API_KEY = "YOUR_CFBD_API_KEY_HERE"  # <-- put your collegefootballdata.com key
 SPORT_KEY = "americanfootball_ncaaf"     # Odds API sport code for college football
 BASE_HFA = 2.0                           # base home field edge in points
