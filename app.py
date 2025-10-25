@@ -2,6 +2,9 @@
 import pandas as pd
 import requests
 import streamlit as st
+from mma_engine import run_mma_engine
+from nhl_engine import run_nhl_engine
+# maybe other imports
 
 st.set_page_config(page_title="EdgeLine", layout="wide")
 st.title("EdgeLine")
