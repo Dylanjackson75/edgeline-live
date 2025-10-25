@@ -7,7 +7,19 @@ from math import radians, sin, cos, asin, sqrt
 # CONFIG
 # =============================
 
+# =============================# =============================
+# EDGE LINE — CFB ENGINE KEYS
 # =============================
+
+# Live Odds API key (for sportsbook lines)
+ODDS_API_KEY = "2705f4f8fea5a5ea49dd1615b8f048dd"
+
+# CollegeFootballData API key (for team metrics)
+CFBD_API_KEY = "3YsoIvNFYebC8oEcJyvfaeA9xvBw8UqKcXjrxN96dHOyLzU8eE4dmiPLtnloHLmV"
+
+# Sport code for College Football
+SPORT_KEY = "americanfootball_ncaaf"
+
 # EDGE LINE — CFB ENGINE KEYS
 # =============================
 
